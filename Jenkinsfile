@@ -4,15 +4,16 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Obtener el código fuente desde el repositorio configurado
                 checkout scm
             }
         }
         
         stage('Build') {
             steps {
-                echo 'Compilando la aplicación...'
-                // Usamos el wrapper de Maven que viene en el proyecto
+                echo 'Compilando la aplicacion...'
+                // Arreglar permisos y saltos de linea (Windows a Linux)
+                sh 'chmod +x mvnw'
+                sh 'sed -i "s/\\r\$//" mvnw'
                 sh './mvnw clean package -DskipTests'
             }
         }
@@ -26,7 +27,7 @@ pipeline {
         
         stage('Test') {
             steps {
-                echo 'Ejecutando pruebas...'
+                echo 'Ejecutando pruebas basicas...'
                 sh './mvnw test'
             }
         }
