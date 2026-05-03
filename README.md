@@ -1,89 +1,76 @@
+# CI/CD Pipeline Workshop - Final Project
 
-# CICD-DEMO
+This repository contains a full Continuous Integration and Continuous Deployment (CI/CD) pipeline built with Jenkins, SonarQube, Trivy, and Kubernetes. The project demonstrates the automation of building, testing, securing, and deploying a Spring Boot application.
 
-This project aims to be the basic skeleton to apply continuous integration and continuous delivery.
+## 🏗 Architecture & Infrastructure
 
-## Topology
+The pipeline infrastructure runs entirely locally via Docker Compose and custom images:
 
-CICD Demo uses some kubernetes primitives to deploy:
+1. **Jenkins (Master Node)**
+   - Runs in a custom Docker container (`Dockerfile.jenkins`).
+   - Pre-configured with Docker CLI, Kubectl, Trivy, and `envsubst`.
+   - Access: `http://localhost:8080/jenkins`
+2. **SonarQube**
+   - Runs alongside Jenkins via `docker-compose.yml`.
+   - Performs deep static code analysis.
+   - Access: `http://localhost:9000`
+3. **Local Kubernetes Cluster**
+   - Uses the host machine's `~/.kube` configuration.
+   - The application is deployed directly to the local cluster.
 
-* Deployment
-* Services
-* Ingress ( with TLS )
+## 🚀 Pipeline Workflow (Jenkinsfile)
 
-```bash
-     internet
-        |
-   [ Ingress ]
-   --|-----|--
-   [ Services ]
-   --|-----|--
-   [   Pods   ]
+The Jenkins Declarative Pipeline is designed to be executed via **Pipeline script from SCM**. It executes the following distinct stages on every run:
 
-```
+1. **Checkout:** Clones the source code from the configured SCM repository.
+2. **Build:** Compiles and packages the Spring Boot Java application using Maven (`./mvnw clean package -DskipTests`).
+3. **Test:** Executes basic unit tests using Maven (`./mvnw test`).
+4. **Static Analysis (SonarQube):** 
+   - Sends the codebase to the local SonarQube server for code quality inspection.
+   - **Gatekeeping:** The pipeline fails based on the SonarQube Quality Gate, which evaluates bugs, vulnerabilities, and security ratings.
+5. **Docker Build:** 
+   - Builds the Docker image `mi-app:latest` using the generated application artifact.
+6. **Container Security Scan (Trivy):** 
+   - Runs an Aqua Security Trivy scan on the built Docker image.
+   - **Gatekeeping:** Fails the pipeline immediately if any `CRITICAL` severity vulnerabilities are found.
+7. **Deploy (Kubernetes):** 
+   - Only executes on the `main` branch.
+   - Replaces environment variables in the K8s template using `envsubst`.
+   - Applies the deployment configuration via `kubectl apply`. The application is exposed as a NodePort service on port `30080`.
+   - Access: `http://localhost:30080`
 
-This project includes:
+**Note on Deployment Strategy:** While the original exercise suggested deploying via a simple `docker run -d -p 80:80 mi-app:latest`, this project uses **Kubernetes (K8s)** as an advanced alternative. Deploying via K8s demonstrates a production-grade infrastructure pattern and better integrates with the custom Jenkins environment built in `Dockerfile.jenkins`. However, the original fallback `docker run` command fully satisfies the deployment requirement if a simpler approach is desired.
 
-* Spring Boot java app
-* Jenkinsfile integration to run pipelines
-* Dockerfile containing the base image to run java apps
-* Makefile and docker-compose to make the pipeline steps much simpler
-* Kubernetes deployment file demonstrating how to deploy this app in a simple Kubernetes cluster
+**Post Actions:** 
+- `always`: The workspace is cleaned up (`cleanWs()`) to ensure consistent state across runs.
+- `failure`: Outputs clear failure logs indicating pipeline failures due to quality or security violations.
 
-## Pipeline Setup
+## ⚙️ Manual Configuration Guide
 
-Pipelines exist at Travis.
+To replicate or evaluate this setup, the following configurations must be present in Jenkins:
 
-Some pipelines are configured by **GitHub/Projects**. If you have created a repository in one of these, your project will be **automatically** built if it has a Jenkinsfile/Travis/Gitlab/CircleCI.
+### 1. Plugins
+Ensure the following plugins are installed via *Manage Jenkins -> Plugins*:
+- **SonarQube Scanner**
+- **Docker Pipeline**
 
-Other pipelines are configured manually under folders. You can create a project manually with the following steps:
+### 2. SonarQube Integration
+1. Log into SonarQube (`admin`/`admin123`) at `http://localhost:9000`.
+2. Create a project named `my-app` and generate an authentication token.
+3. In Jenkins (*Manage Jenkins -> System*), add a **SonarQube Server**:
+   - **Name:** `SonarQube`
+   - **Server URL:** `http://sonarqube:9000`
+   - **Credentials:** Add the token as a Secret Text credential.
+4. Go to *Manage Jenkins -> Tools* and ensure SonarQube Scanner is set to auto-install.
 
-How to run the app:
+### 3. Pipeline Job & Automation Trigger
+1. Create a **Pipeline** job in Jenkins.
+2. Select **Pipeline script from SCM**, point it to this Git repository, and specify `Jenkinsfile` as the Script Path.
+3. To enable automatic deployments, configure a **Poll SCM** schedule (e.g., `* * * * *`) or set up a **GitHub Webhook** trigger under your job settings. This ensures the pipeline executes automatically on every code push.
 
-```make
-make
-```
+## 🚦 Testing & Gatekeeping Validations
 
-## Testing
-
-Unit tests and integrations tests are separated using [JUnit Categories][].
-
-[JUnit Categories]: https://maven.apache.org/surefire/maven-surefire-plugin/examples/junit.html
-
-### Unit Tests
-
-```java
-mvn test -Dgroups=UnitTest
-```
-
-Or using Docker:
-
-```bash
-make build
-```
-
-### Integration Tests
-
-```java
-mvn integration-test -Dgroups=IntegrationTests
-```
-
-Or using Docker:
-
-```bash
-make integrationTest
-```
-
-### System Tests
-
-System tests run with Selenium using docker-compose to run a [Selenium standalone container][] with Chrome.
-
-[Selenium standalone container]: https://github.com/SeleniumHQ/docker-selenium
-
-Using Docker:
-
-* If you are running locally, make sure the `$APP_URL` is populated and points to a valid instance of your application. This variable is populated automatically in Jenkins.
-
-```bash
-APP_URL=http://dev-cicd-demo-master.anzcd.internal/ make systemTest
-```
+To validate the gatekeeping mechanisms, try the following:
+* **Simulate Trivy Failure:** Modify the `Dockerfile` to use an insecure base image (like an outdated `alpine` or `node` version with known CVEs). Commit and push. The pipeline will fail at the Container Security Scan stage.
+* **Simulate SonarQube Failure:** Introduce intentional technical debt or hardcode a password/secret in the Java source code to trigger a Security Hotspot. The pipeline will fail at the Static Analysis stage due to the Quality Gate.
+* **Successful Deployment:** Resolve all vulnerabilities and hotspots. The pipeline will complete successfully, and the updated application will be visible at `http://localhost:30080`.

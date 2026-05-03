@@ -8,13 +8,20 @@ pipeline {
             }
         }
         
-        stage('Build & Test') {
+        stage('Build') {
             steps {
-                echo 'Compilando la aplicacion y ejecutando pruebas...'
+                echo 'Compilando y empaquetando la aplicacion...'
                 // Arreglar permisos y saltos de linea (Windows a Linux)
                 sh 'chmod +x mvnw'
                 sh 'sed -i "s/\\r\$//" mvnw'
-                sh './mvnw clean package'
+                sh './mvnw clean package -DskipTests'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                echo 'Ejecutando pruebas...'
+                sh './mvnw test'
             }
         }
 
@@ -23,17 +30,24 @@ pipeline {
                 echo 'Ejecutando analisis de SonarQube...'
                 script {
                     // Requiere el plugin de SonarQube instalado en Jenkins y el servidor corriendo
-                    sh './mvnw sonar:sonar -Dsonar.projectKey=my-app -Dsonar.host.url=http://sonarqube:9000'
+                    // Se usa sonar.qualitygate.wait=true para que el pipeline falle si el Quality Gate no pasa
+                    sh './mvnw sonar:sonar -Dsonar.projectKey=my-app -Dsonar.host.url=http://sonarqube:9000 -Dsonar.qualitygate.wait=true'
                 }
             }
         }
         
-        stage('Docker Build & Security Scan (Trivy)') {
+        stage('Docker Build') {
             steps {
-                echo 'Construyendo la imagen Docker y escaneando...'
+                echo 'Construyendo la imagen Docker...'
                 sh 'docker build -t mi-app:latest .'
-                // Escanea la imagen Docker buscando vulnerabilidades conocidas
-                sh 'trivy image mi-app:latest'
+            }
+        }
+
+        stage('Container Security Scan (Trivy)') {
+            steps {
+                echo 'Escaneando la imagen Docker buscando vulnerabilidades conocidas...'
+                // Se configura para que el pipeline falle si encuentra vulnerabilidades críticas
+                sh 'trivy image --exit-code 1 --severity CRITICAL mi-app:latest'
             }
         }
         
@@ -57,7 +71,7 @@ pipeline {
             cleanWs() // Limpia el espacio de trabajo despues de cada ejecucion
         }
         failure {
-            echo 'La ejecucion del pipeline ha fallado. Revisa los logs.'
+            echo 'Pipeline failed due to quality or security violations.'
         }
     }
 }
