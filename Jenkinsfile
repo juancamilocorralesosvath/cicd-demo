@@ -32,7 +32,8 @@ pipeline {
                 script {
                     // Se usa withSonarQubeEnv para inyectar automáticamente el token configurado en Jenkins
                     withSonarQubeEnv('SonarQube') {
-                        sh './mvnw sonar:sonar -Dsonar.projectKey=my-app -Dsonar.qualitygate.wait=true'
+                        // Usamos la URL interna del servicio (sonarqube) para la comunicación entre contenedores
+                        sh './mvnw sonar:sonar -Dsonar.projectKey=my-app -Dsonar.host.url=http://sonarqube:9000 -Dsonar.qualitygate.wait=true'
                     }
                 }
             }
