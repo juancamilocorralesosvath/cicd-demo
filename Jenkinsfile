@@ -21,7 +21,8 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Ejecutando pruebas...'
-                sh './mvnw test -DforkCount=0'
+                // Excluimos SeleniumExampleTest ya que requiere infraestructura externa (Selenium Grid)
+                sh './mvnw test -DforkCount=0 -Dtest=!SeleniumExampleTest'
             }
         }
 
