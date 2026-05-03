@@ -30,9 +30,10 @@ pipeline {
             steps {
                 echo 'Ejecutando analisis de SonarQube...'
                 script {
-                    // Requiere el plugin de SonarQube instalado en Jenkins y el servidor corriendo
-                    // Se usa sonar.qualitygate.wait=true para que el pipeline falle si el Quality Gate no pasa
-                    sh './mvnw sonar:sonar -Dsonar.projectKey=my-app -Dsonar.host.url=http://sonarqube:9000 -Dsonar.qualitygate.wait=true'
+                    // Se usa withSonarQubeEnv para inyectar automáticamente el token configurado en Jenkins
+                    withSonarQubeEnv('SonarQube') {
+                        sh './mvnw sonar:sonar -Dsonar.projectKey=my-app -Dsonar.qualitygate.wait=true'
+                    }
                 }
             }
         }
