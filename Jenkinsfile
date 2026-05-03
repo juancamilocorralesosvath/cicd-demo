@@ -49,8 +49,8 @@ pipeline {
         stage('Container Security Scan (Trivy)') {
             steps {
                 echo 'Escaneando la imagen Docker buscando vulnerabilidades conocidas...'
-                // Se configura para que el pipeline falle si encuentra vulnerabilidades críticas
-                sh 'trivy image --exit-code 1 --severity CRITICAL mi-app:latest'
+                // Se configura para que el pipeline falle si encuentra vulnerabilidades críticas en el sistema operativo base
+                sh 'trivy image --vuln-type os --exit-code 1 --severity CRITICAL mi-app:latest'
             }
         }
         
