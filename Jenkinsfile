@@ -53,10 +53,11 @@ pipeline {
         
         stage('Deploy (Kubernetes)') {
             when { branch 'main' }
+            environment {
+                APP_NAME = 'mi-app'
+            }
             steps {
                 echo 'Desplegando la aplicacion en Kubernetes...'
-                // Configuramos las variables de entorno para reemplazar en el template
-                env.APP_NAME = 'mi-app'
                 // Reemplazamos las variables y aplicamos el deployment
                 // (Requiere que kubectl esté instalado en el agente de Jenkins y configurado)
                 sh 'envsubst < k8s-config/deployment.tmpl.yml > k8s-config/deployment.yml'
