@@ -21,7 +21,7 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Ejecutando pruebas...'
-                sh './mvnw test'
+                sh './mvnw test -DforkCount=0'
             }
         }
 
