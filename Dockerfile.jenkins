@@ -23,4 +23,7 @@ RUN apt-get install -y wget apt-transport-https gnupg && \
     echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | tee -a /etc/apt/sources.list.d/trivy.list && \
     apt-get update && apt-get install -y trivy
 
+# Configurar git para confiar en todos los directorios (evita errores de permisos al cambiar de usuario)
+RUN git config --global --add safe.directory '*'
+
 USER jenkins
