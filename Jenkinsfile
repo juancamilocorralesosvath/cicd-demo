@@ -68,7 +68,7 @@ pipeline {
                 echo 'Desplegando la aplicacion en Kubernetes...'
                 // Reemplazamos las variables y aplicamos el deployment
                 // (Requiere que kubectl esté instalado en el agente de Jenkins y configurado)
-                sh 'envsubst < k8s-config/deployment.tmpl.yml > k8s-config/deployment.yml'
+                sh "envsubst < k8s-config/deployment.tmpl.yml > k8s-config/deployment.yml"
                 sh 'kubectl apply -f k8s-config/deployment.yml --validate=false'
             }
         }
