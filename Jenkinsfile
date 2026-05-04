@@ -55,7 +55,12 @@ pipeline {
         }
         
         stage('Deploy (Kubernetes)') {
-            when { branch 'master' }
+            when { 
+                anyOf {
+                    branch 'master'
+                    expression { env.GIT_BRANCH == 'origin/master' || env.GIT_BRANCH == 'master' }
+                }
+            }
             environment {
                 APP_NAME = 'mi-app'
             }
