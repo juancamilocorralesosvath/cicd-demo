@@ -55,7 +55,7 @@ pipeline {
         }
         
         stage('Deploy (Kubernetes)') {
-            when { branch 'main' }
+            when { branch 'master' }
             environment {
                 APP_NAME = 'mi-app'
             }
