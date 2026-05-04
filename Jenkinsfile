@@ -63,6 +63,7 @@ pipeline {
             }
             environment {
                 APP_NAME = 'mi-app'
+                KUBECONFIG = '/var/jenkins_home/.kube/config'
             }
             steps {
                 echo 'Desplegando la aplicacion en Kubernetes...'
